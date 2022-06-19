@@ -1,9 +1,11 @@
-if ( ...expr... ) {
-  ...statements...
-} else { 
-  if (...expr40...) {
-    ...statements41...
-  } else {
-    ...statements42...
+{
+  if {e} {
+    s
+  } { 
+    if {e} {
+      s
+    } {
+      s
+    }
   }
 }
