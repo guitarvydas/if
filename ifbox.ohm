@@ -1,0 +1,12 @@
+ifbox {
+Main = Box
+Box = "{" Statement "}"
+Statement =
+  | IfThenElse
+  | Other
+Other = "..."
+IfThenElse = "if" Box Box Box?
+comment = "//" (~newline any)* newline
+newline = "\n"
+space += comment
+}

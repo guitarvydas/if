@@ -1,0 +1,11 @@
+humanReadableIf {
+Main = Statement
+Statement =
+  | "if" "(" Expression ")" Block "else" Block -- ifthenelse
+  | "if" "(" Expression ")" Block  -- ifthen
+  | Other -- other
+Block = "{" Statement+ "}"
+Expression = Other
+Other = "..." digit+ "..."
+}
+
