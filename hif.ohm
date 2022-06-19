@@ -4,8 +4,9 @@ Statement =
   | "if" "(" Expression ")" Block "else" Block -- ifthenelse
   | "if" "(" Expression ")" Block  -- ifthen
   | Other -- other
-Block = "{" Statement+ "}"
+Block = "{" Statement Block? "}"
 Expression = Other
-Other = "..." digit+ "..."
+Other = OtherChar+
+OtherChar = ~separator any
+separator = "{" | "}" | "(" | ")"
 }
-

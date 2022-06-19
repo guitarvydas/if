@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      textarea {
+      }
+    </style>
+  </head>
+  <body>
+
+    <h1>If Unprettyfier</h1>
+    <br>
+    <label for="src">source:</label>
+    <textarea id="src" rows="9" cols="60" placeholder="src" style="background-color:oldlace;">
+if ( ...expr... ) {
+  ...statements...
+} else { 
+  if (...expr40...) {
+    ...statements41...
+  } else {
+    ...statements42...
+  }
+}
+    </textarea>
+    <br>
+    <label for="output">output:</label>
+    <textarea id="output" rows="15" cols="60" placeholder="transpiled"  readonly style="background-color:whitesmoke;">
+    </textarea>
+    <br>
+    <p id="status" > READY </p>
+    <p id="regression" > incomplete </p>
+
+    <!-- Ohm-JS -->
+    <script src="https://unpkg.com/ohm-js@16/dist/ohm.min.js"></script>
+
+
+    <br>
+    <button onclick="transpile ()">Transpile to Machine Readable Syntax</button>
+    <script>
+
+      const grammars = ohm.grammars(String.raw`
+humanReadableIf {
+Main = Statement
+Statement =
+  | "if" "(" Expression ")" Block "else" Block -- ifthenelse
+  | "if" "(" Expression ")" Block  -- ifthen
+  | Other -- other
+Block = "{" Statement Block? "}"
+Expression = Other
+Other = OtherChar+
+OtherChar = ~separator any
+separator = "{" | "}" | "(" | ")"
+}
+ifbox {
+Main = Box
+Box = "{" Statement "}"
+Statement =
+  | IfThenElse
+  | Other
+IfThenElse = "if" Box Box Box?
+Other = OtherChar+
+OtherChar = ~separator any
+separator = "{" | "}" | "(" | ")"
+comment = "//" (~newline any)* newline
+newline = "\n"
+space += comment
+}
+`);
+
+      const dinc = 2;
+      function indent (n) {
+	  var s = "";
+	  while (n > 0) {
+	      s += " ";
+	      n -=1;
+	  }
+	  return s;
+      }
+      
+      const hooks = {
+	  
+	  Main: function (Statement) {
+	      var depth = this.args.depth;
+	      return `{\n${Statement.mr (depth)}\n}`;
+	  },
+	  
+	  Statement_ifthenelse: function (kif, lp, Expression, rp, ThenBlock, kelse, ElseBlock) {
+	      var depth = this.args.depth;
+	      return `${indent (depth)}if {${Expression.mr (depth)}}${ThenBlock.mr (depth+dinc)}${ElseBlock.mr (depth+dinc)}`;
+	  },
+	  Statement_ifthen: function (kif, lp, Expression, rp, ThenBlock) {
+	      var depth = this.args.depth;
+	      return `if (${Expression.mr (depth)})${ThenBlock.mr (depth+dinc)}`;
+	  },
+	  Statement_other: function (other) {
+	      var depth = this.args.depth;
+	      return `${indent (depth)}${other.mr (depth)}`;
+	  },
+	  Block: function (lb, Statement, OptionalBlock, rb) {
+	      var depth = this.args.depth;
+	      return `\n${indent (depth)}{\n${Statement.mr (depth+dinc)}${OptionalBlock.mr (depth+dinc).join ('')}\n${indent (depth)}}`;
+	  },
+	  Expression: function (x) { 
+	      var depth = this.args.depth;
+	      return x.mr (depth); 
+	  },
+	  Other: function (stuff) {
+	      var depth = this.args.depth;
+	      return stuff.mr (depth).join ('');
+	  },
+          OtherChar: function (c) { 
+	      var depth = this.args.depth;
+	      return c.mr (depth); 
+	  },
+	  
+	  _terminal: function () { return this.sourceString; },
+	  _iter: function (...children) {
+	      var depth = this.args.depth;
+	      var mapped = children.map(c => {
+		  var r = c.mr (depth);
+		  return r;
+	      });
+	      return mapped;
+	  }
+      };
+
+      function transpile () {
+	  let src = document.getElementById('src').value;
+	  let grammar = grammars["humanReadableIf"]
+	  let matchResult = grammar.match (src);
+	  if (matchResult.succeeded ()) {
+              document.getElementById('status').innerHTML = "OK";
+              let sem = grammar.createSemantics ();
+              sem.addOperation ('mr (depth)', hooks);
+              let treeWalker = sem (matchResult);
+              let text = treeWalker.mr (0);
+              document.getElementById('output').value = text;
+	      {
+	       	  let regression_src = document.getElementById ('output').value;
+	       	  let regression_grammar = grammars["ifbox"]
+	       	  let regression_matchResult = regression_grammar.match (regression_src);
+	       	  if (regression_matchResult.succeeded ()) {
+	       	      document.getElementById('regression').innerHTML = "regression Test OK";
+	       	  } else {
+	       	      document.getElementById('regression').innerHTML = "regression Test FAILED";
+	       	  }
+	      }
+	  } else {
+              document.getElementById('output').value = grammar.trace (src);
+              document.getElementById('status').innerHTML = "parse FAILED";
+	  }
+      }
+    </script>
+  </body>
+</html>
+

@@ -4,8 +4,10 @@ Box = "{" Statement "}"
 Statement =
   | IfThenElse
   | Other
-Other = "..."
 IfThenElse = "if" Box Box Box?
+Other = OtherChar+
+OtherChar = ~separator any
+separator = "{" | "}" | "(" | ")"
 comment = "//" (~newline any)* newline
 newline = "\n"
 space += comment
